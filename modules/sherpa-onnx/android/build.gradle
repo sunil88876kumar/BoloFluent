@@ -1,0 +1,16 @@
+apply plugin: 'com.android.library'
+apply plugin: 'expo-module-gradle-plugin'
+
+group = 'com.bolofluent.offline'
+version = '0.1.0'
+
+def sherpaLibrary = file('libs/sherpa-onnx.aar')
+android {
+  namespace 'com.bolofluent.offline'
+  defaultConfig { versionCode 1; versionName '0.1.0' }
+  sourceSets.main.java.srcDirs += sherpaLibrary.exists() ? ['src/sherpa/java'] : ['src/fallback/java']
+}
+repositories { flatDir { dirs 'libs' } }
+dependencies {
+  if (sherpaLibrary.exists()) implementation(name: 'sherpa-onnx', ext: 'aar')
+}

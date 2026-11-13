@@ -1,0 +1,18 @@
+node_modules/
+.git/
+.expo/
+.agents/
+.codex/
+.aws/
+/android/
+/ios/
+/dist/
+/dist-android/
+test-results/
+playwright-report/
+coverage/
+*.log
+.env*
+
+# Keep modules/**/android, bundled model assets, and native AARs in the upload.
+# Expo generates the root Android project in the cloud with the profile's env.

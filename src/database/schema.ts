@@ -1,0 +1,24 @@
+export const schema = `
+PRAGMA foreign_keys = ON;
+PRAGMA journal_mode = WAL;
+CREATE TABLE IF NOT EXISTS schema_migrations (version INTEGER PRIMARY KEY, applied_at TEXT DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS user_profile (id INTEGER PRIMARY KEY CHECK(id=1), name TEXT NOT NULL, preferred_language TEXT NOT NULL DEFAULT 'hi', learning_level TEXT NOT NULL DEFAULT 'beginner' CHECK(learning_level IN ('beginner','intermediate','advanced')), created_at TEXT DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS user_settings (user_id INTEGER PRIMARY KEY REFERENCES user_profile(id) ON DELETE CASCADE, theme TEXT DEFAULT 'light', speech_speed REAL DEFAULT 1.0, tutor_language TEXT DEFAULT 'bilingual', daily_goal_minutes INTEGER DEFAULT 15);
+CREATE TABLE IF NOT EXISTS lessons (id INTEGER PRIMARY KEY, title TEXT NOT NULL, description TEXT, category TEXT NOT NULL, difficulty TEXT NOT NULL, content_json TEXT NOT NULL, sort_order INTEGER DEFAULT 0, is_active INTEGER DEFAULT 1);
+CREATE TABLE IF NOT EXISTS lesson_progress (user_id INTEGER NOT NULL REFERENCES user_profile(id) ON DELETE CASCADE, lesson_id INTEGER NOT NULL REFERENCES lessons(id), status TEXT DEFAULT 'not_started', completed_at TEXT, PRIMARY KEY(user_id,lesson_id));
+CREATE TABLE IF NOT EXISTS vocabulary (id INTEGER PRIMARY KEY, word TEXT NOT NULL, meaning_en TEXT, meaning_hi TEXT, example_sentence TEXT, pronunciation TEXT, difficulty TEXT DEFAULT 'beginner');
+CREATE TABLE IF NOT EXISTS user_vocabulary (user_id INTEGER NOT NULL REFERENCES user_profile(id) ON DELETE CASCADE, vocabulary_id INTEGER NOT NULL REFERENCES vocabulary(id), status TEXT DEFAULT 'learning', next_review_at TEXT, interval_days INTEGER DEFAULT 0, repetitions INTEGER DEFAULT 0, ease REAL DEFAULT 2.5, PRIMARY KEY(user_id,vocabulary_id));
+CREATE TABLE IF NOT EXISTS conversation_sessions (id TEXT PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES user_profile(id) ON DELETE CASCADE, topic TEXT, difficulty TEXT DEFAULT 'beginner', started_at TEXT DEFAULT CURRENT_TIMESTAMP, ended_at TEXT, duration_seconds INTEGER DEFAULT 0);
+CREATE TABLE IF NOT EXISTS conversation_messages (id TEXT PRIMARY KEY, session_id TEXT NOT NULL REFERENCES conversation_sessions(id) ON DELETE CASCADE, role TEXT NOT NULL CHECK(role IN ('user','assistant','system')), message TEXT NOT NULL, language TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS grammar_corrections (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL REFERENCES user_profile(id) ON DELETE CASCADE, session_id TEXT REFERENCES conversation_sessions(id) ON DELETE SET NULL, original_text TEXT NOT NULL, corrected_text TEXT NOT NULL, explanation_en TEXT, explanation_hi TEXT, error_type TEXT, created_at TEXT DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS practice_attempts (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL REFERENCES user_profile(id) ON DELETE CASCADE, exercise_type TEXT NOT NULL, expected_text TEXT, recognized_text TEXT, audio_duration_seconds REAL, created_at TEXT DEFAULT CURRENT_TIMESTAMP);
+CREATE TABLE IF NOT EXISTS pronunciation_results (attempt_id INTEGER PRIMARY KEY REFERENCES practice_attempts(id) ON DELETE CASCADE, word_accuracy REAL, fluency_score REAL, completeness_score REAL, acoustic_pronunciation_score REAL, assessment_details TEXT);
+CREATE TABLE IF NOT EXISTS daily_progress (user_id INTEGER NOT NULL REFERENCES user_profile(id) ON DELETE CASCADE, progress_date TEXT NOT NULL, speaking_minutes REAL DEFAULT 0, lessons_completed INTEGER DEFAULT 0, words_learned INTEGER DEFAULT 0, exercises_completed INTEGER DEFAULT 0, PRIMARY KEY(user_id,progress_date));
+CREATE TABLE IF NOT EXISTS learning_activity (id TEXT PRIMARY KEY, user_id INTEGER NOT NULL REFERENCES user_profile(id) ON DELETE CASCADE, progress_date TEXT NOT NULL, exercise_type TEXT NOT NULL, reference TEXT NOT NULL, minutes REAL NOT NULL, score REAL, details_json TEXT);
+CREATE INDEX IF NOT EXISTS idx_messages_session ON conversation_messages(session_id);
+CREATE INDEX IF NOT EXISTS idx_progress_date ON learning_activity(user_id,progress_date);
+CREATE INDEX IF NOT EXISTS idx_grammar_user ON grammar_corrections(user_id);
+CREATE INDEX IF NOT EXISTS idx_attempts_user ON practice_attempts(user_id);
+INSERT OR IGNORE INTO schema_migrations(version) VALUES(1);
+PRAGMA user_version = 1;
+`;
